@@ -11,7 +11,7 @@ template <typename T>
 Vector<T>::Vector(size_t size) : data_{nullptr}, capacity_{size}, size_{size} {}
 
 template <typename T>
-Vector<T>::Vector(size_t size, const T& value) : capacity_{size}, size_{size} {
+Vector<T>::Vector(size_t size, const_reference value) : capacity_{size}, size_{size} {
     data_ = new T[capacity_];
     for(int i = 0; i < size_; ++i) {
         data_[i] = value;
@@ -46,7 +46,7 @@ Vector<T>::Vector(std::initializer_list<T> init) {
     size_ = init.size();
     data_ = new T[capacity_];
     int i = 0;
-    for(const T& it : init) {
+    for(const_reference it : init) {
         data_[i++] = it;
     }
 }
@@ -71,7 +71,7 @@ Vector<T>& Vector<T>::operator= (std::initializer_list<T> init) {
     delete[] data_;
     data_ = new T[capacity_];
     int i = 0;
-    for(const T& it : init) {
+    for(const_reference it : init) {
         data_[i++] = it;
     }
     return *this;
@@ -93,7 +93,7 @@ Vector<T>& Vector<T>::operator= (const Vector& other) {
 }
 
 template <typename T>
-void Vector<T>::assign(size_t count, const T& val) {
+void Vector<T>::assign(size_t count, const_reference val) {
     *this = Vector<T>(count, val);
 }
 
@@ -103,7 +103,7 @@ void Vector<T>::assign(std::initializer_list<T> init) {
 }
 
 template <typename T>
-const T& Vector<T>::at(size_t pos) const {
+Vector<T>::const_reference Vector<T>::at(size_t pos) const {
     if(pos >= size_) {
         throw std::out_of_range();
     }
@@ -119,7 +119,7 @@ T& Vector<T>::at(size_t pos) {
 }
 
 template <typename T>
-const T& Vector<T>::operator[] (size_t pos) const {
+Vector<T>::const_reference Vector<T>::operator[] (size_t pos) const {
     return data_[pos];
 }
 
@@ -129,7 +129,7 @@ T& Vector<T>::operator[] (size_t pos) {
 }
 
 template <typename T>
-const T& Vector<T>::front() const {
+Vector<T>::const_reference Vector<T>::front() const {
     return data_[0];
 }
 
@@ -139,7 +139,7 @@ T& Vector<T>::front() {
 }
 
 template <typename T>
-const T& Vector<T>::back() const {
+Vector<T>::const_reference Vector<T>::back() const {
     return data_[size_ - 1];
 }
 
@@ -219,7 +219,7 @@ void Vector<T>::clear() {
 }
 
 template <typename T>
-void Vector<T>::insert(size_t pos, const T& val) {
+void Vector<T>::insert(size_t pos, const_reference val) {
     if(pos > size_) {
         throw std::out_of_range();
     }
@@ -263,7 +263,7 @@ void Vector<T>::insert(size_t pos, T&& val) {
 }
 
 template <typename T>
-void Vector<T>::insert(size_t pos, size_t count, const T& val) {
+void Vector<T>::insert(size_t pos, size_t count, const_reference val) {
     if(pos > size_) {
         throw std::out_of_range();
     }
@@ -308,12 +308,12 @@ void Vector<T>::erase(size_t pos1, size_t pos2) {
 }
 
 template <typename T>
-void Vector<T>::push_back(const T& val) {
+void Vector<T>::push_back(const_reference val) {
     insert(size_, val);
 }
 
 template <typename T>
-void Vector<T>::pop_back(const T& val) {
+void Vector<T>::pop_back(const_reference val) {
     erase(size_ - 1);
 }
 
@@ -332,7 +332,7 @@ void Vector<T>::resize(size_t size) {
 }
 
 template <typename T>
-void Vector<T>::resize(size_t size, const T& val) {
+void Vector<T>::resize(size_t size, const_reference val) {
     if(size == size_) {
         return;
     }
