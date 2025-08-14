@@ -2,6 +2,7 @@
 #define VECTORCPP
 #include "Vector.hpp" 
 #include <stdexcept>
+#include <utility>
 
 template <typename T>
 Vector<T>::Vector() : data_{nullptr}, capacity_{0}, size_{0}{}
@@ -36,6 +37,7 @@ Vector<T>::~Vector() {
     capacity_ = 0;
     size_ = 0;
     delete[] data_;
+    data_ = nullptr;
 }
 
 template <typename T>
@@ -154,6 +156,202 @@ T* Vector<T>::data() {
 template <typename T> 
 const T* Vector<T>::data() const {
     return data_;
+}
+
+template <typename T>
+bool Vector<T>::empty() const {
+    return  size_ == 0;
+}
+
+template <typename T>
+size_t Vector<T>::size() const {
+    return size_;
+}
+
+template <typename T>
+void Vector<T>::reserve(size_t cap) {
+    if(cap <= capacity_) {
+        return;
+    }
+    Vector<T> tmp(cap);
+    for(int i = 0; i < size_; ++i) {
+        tmp.data_[i] = data_[i];
+    }
+    tmp.size_ = size_;
+    this->swap(tmp);
+}
+
+template <typename T>
+size_t Vector<T>::capacity() const {
+    return capacity_;
+}
+
+template <typename T>
+void Vector<T>::shrink_to_fit() {
+    if(capacity_ == size_) {
+        return;
+    }
+    Vector<T> tmp(size_);
+    for(int i = 0; i < size_; ++i) {
+        tmp[i] = data_[i];
+    }
+    tmp.size_ == size_;
+    swap(tmp, *this);
+}
+
+template <typename T>
+void Vector<T>::swap(Vector<T>& other) noexcept {
+    size_t tmp = capacity_;
+    capacity_ = other.capacity_;
+    other.capacity_ = tmp;
+    tmp = size_;
+    size_ = other.size_;
+    other.size_ = tmp;
+    T* t = data_;
+    data_ = other.data_;
+    other.data_ = t;
+    t = nullptr;
+}
+
+template <typename T>
+void Vector<T>::clear() {
+    size_ = 0;
+}
+
+template <typename T>
+void Vector<T>::insert(size_t pos, const T& val) {
+    if(pos > size_) {
+        throw std::out_of_range();
+    }
+    if(capacity_ == 0) {
+        data_ = new T[1];
+        data_[0] = val;
+        capacity_ = 1;
+        size_ = 1;
+        return;
+    }
+    if(capacity_ == size_) { 
+        reserve(capacity_ * 2); 
+    } 
+    for(int i = size_; i > pos; --i) {
+        data_[i] = data_[i - 1]; 
+    } 
+    ++size_;
+    data_[pos] = val;
+}
+
+template <typename T>
+void Vector<T>::insert(size_t pos, T&& val) {
+    if(pos > size_) {
+        throw std::out_of_range();
+    }
+    if(capacity_ == 0) {
+        data_ = new T[1];
+        data_[0] = val;
+        capacity_ = 1;
+        size_ = 1;
+        return;
+    }
+    if(capacity_ == size_) { 
+        reserve(capacity_ * 2); 
+    } 
+    for(int i = size_; i > pos; --i) {
+        data_[i] = data_[i - 1]; 
+    } 
+    ++size_;
+    data_[pos] = std::move(val);
+}
+
+template <typename T>
+void Vector<T>::insert(size_t pos, size_t count, const T& val) {
+    if(pos > size_) {
+        throw std::out_of_range();
+    }
+    if(capacity_ == 0) {
+        *this = Vector<int>(count, val);
+        return;
+    }
+    if(capacity_ <= size_ + count) { 
+        reserve(capacity_ * 2 + count); 
+    } 
+    for(int i = size_ + count - 1; i > pos; --i) {
+        data_[i] = data_[i - 1]; 
+    } 
+    size_ += count;
+    for(int i = pos; i < pos + count; ++i) {
+        data_[i] = val; 
+    }
+}
+
+template <typename T>
+template <typename... Args>
+void Vector<T>::emplace(size_t pos, Args&&... args) {
+    insert(pos, T(std::forward<Args>(args)...));
+}
+
+template <typename T>
+void Vector<T>::erase(size_t pos) {
+    if(pos >= size_) {
+        throw std::out_of_range();
+    }
+    for(int i = pos; i < size_ - 1; ++i) {
+        data_[i] = data_[i + 1];
+    }
+    size_--;
+}
+
+template <typename T>
+void Vector<T>::erase(size_t pos1, size_t pos2) {
+    for(int i = pos1; i < size_; ++i) {
+        erase(i);
+    }
+}
+
+template <typename T>
+void Vector<T>::push_back(const T& val) {
+    insert(size_, val);
+}
+
+template <typename T>
+void Vector<T>::pop_back(const T& val) {
+    erase(size_ - 1);
+}
+
+template <typename T>
+void Vector<T>::resize(size_t size) {
+    if(size == size_) {
+        return;
+    }
+    else if(size < size_) {
+        erase(size, size_);
+    }
+    else {
+        reserve(size);
+        size_ = capacity_;
+    }
+}
+
+template <typename T>
+void Vector<T>::resize(size_t size, const T& val) {
+    if(size == size_) {
+        return;
+    }
+    else if(size < size_) {
+        erase(size, size_);
+    }
+    else {
+        reserve(size);
+        size_ = capacity_;
+        for(int i = 0; i < size_; ++i) {
+            data_[i] = val;
+        }
+    }
+}
+
+template <typename T>
+template <typename...Args>
+void Vector<T>::emplace_back(Args&&... args) {
+    insert(size_ - 1, T(std::forward<Args>(args)...));
 }
 
 #endif
