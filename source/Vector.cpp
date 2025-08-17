@@ -1,6 +1,6 @@
 #ifndef VECTORCPP
 #define VECTORCPP
-#include "Vector.hpp" 
+#include "../includes/Vector.hpp" 
 #include <stdexcept>
 #include <utility>
 
@@ -107,7 +107,7 @@ void Vector<T>::assign(std::initializer_list<T> init) {
 template <typename T>
 typename Vector<T>::const_reference Vector<T>::at(size_type pos) const {
     if(pos >= size_) {
-        throw std::out_of_range();
+        throw std::out_of_range("Wrong argument");
     }
     return data_[pos];
 }
@@ -115,7 +115,7 @@ typename Vector<T>::const_reference Vector<T>::at(size_type pos) const {
 template <typename T>
 typename Vector<T>::reference Vector<T>::at(size_type pos) {
     if(pos >= size_) {
-        throw std::out_of_range();
+        throw std::out_of_range("Wrong argument");
     }
     return data_[pos];
 }
@@ -223,13 +223,10 @@ void Vector<T>::clear() {
 template <typename T>
 void Vector<T>::insert(size_type pos, const_reference val) {
     if(pos > size_) {
-        throw std::out_of_range();
+        throw std::out_of_range("Wrong argument");
     }
     if(capacity_ == 0) {
-        data_ = new T[1];
-        data_[0] = val;
-        capacity_ = 1;
-        size_ = 1;
+        *this = Vector<T>(1, val);
         return;
     }
     if(capacity_ == size_) { 
@@ -245,13 +242,10 @@ void Vector<T>::insert(size_type pos, const_reference val) {
 template <typename T>
 void Vector<T>::insert(size_type pos, reference& val) {
     if(pos > size_) {
-        throw std::out_of_range();
+        throw std::out_of_range("Wrong argument");
     }
     if(capacity_ == 0) {
-        data_ = new T[1];
-        data_[0] = val;
-        capacity_ = 1;
-        size_ = 1;
+        *this = Vector<T>(1, val);
         return;
     }
     if(capacity_ == size_) { 
@@ -267,10 +261,10 @@ void Vector<T>::insert(size_type pos, reference& val) {
 template <typename T>
 void Vector<T>::insert(size_type pos, size_type count, const_reference val) {
     if(pos > size_) {
-        throw std::out_of_range();
+        throw std::out_of_range("Wrong argument");
     }
     if(capacity_ == 0) {
-        *this = Vector<int>(count, val);
+        *this = Vector<T>(count, val);
         return;
     }
     if(capacity_ <= size_ + count) { 
@@ -294,7 +288,7 @@ void Vector<T>::emplace(size_type pos, Args&&... args) {
 template <typename T>
 void Vector<T>::erase(size_type pos) {
     if(pos >= size_) {
-        throw std::out_of_range();
+        throw std::out_of_range("Wrong argument");
     }
     for(int i = pos; i < size_ - 1; ++i) {
         data_[i] = data_[i + 1];
@@ -311,7 +305,15 @@ void Vector<T>::erase(size_type pos1, size_type pos2) {
 
 template <typename T>
 void Vector<T>::push_back(const_reference val) {
-    insert(size_, val);
+    if(capacity_ == 0) {
+        *this = Vector<int>(1, val);
+        return;
+    }
+    if(capacity_ == size_) { 
+        reserve(capacity_ * 2); 
+    } 
+    ++size_;
+    data_[size_ - 1] = val;
 }
 
 template <typename T>
@@ -399,18 +401,18 @@ bool operator<= (const Vector<T>& lhs, const Vector<T>& rhs){
 
 template <typename T>
 bool operator>= (const Vector<T>& lhs, const Vector<T>& rhs){
-    return lhs < rhs;
+    return !(lhs < rhs);
 }
 
 template <typename T>
-void swap (const Vector<T>& lhs, const Vector<T>& rhs) noexcept {
+void swap (Vector<T>& lhs, Vector<T>& rhs) noexcept {
     lhs.swap(rhs);
 }
 
 template <typename T>
 typename Vector<T>::size_type erase(const Vector<T>& vec, typename Vector<T>::const_reference value) {
     for(int i = 0; i < vec.size_; ++i) {
-        if(vec[i] == val) {
+        if(vec[i] == value) {
             vec.erase(vec[i]);
         }
     }

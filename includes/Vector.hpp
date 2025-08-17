@@ -53,19 +53,27 @@ public:
     void resize(size_type size, const_reference);
     template <typename...Args>
     void emplace_back(Args&&...);
-    friend bool operator== (const Vector<T>& lhs, const Vector<T>& rhs);
-    friend bool operator!= (const Vector<T>& lhs, const Vector<T>& rhs);
-    friend bool operator<= (const Vector<T>& lhs, const Vector<T>& rhs);
-    friend bool operator>= (const Vector<T>& lhs, const Vector<T>& rhs);
-    friend bool operator< (const Vector<T>& lhs, const Vector<T>& rhs);
-    friend bool operator> (const Vector<T>& lhs, const Vector<T>& rhs);
-    friend void swap (const Vector<T>& lhs, const Vector<T>& rhs) noexcept;
-    friend size_type erase(const Vector<T>& lhs, const_reference) noexcept;
+    template <typename U>
+    friend bool operator== (const Vector<U>& lhs, const Vector<U>& rhs);
+    template <typename U>
+    friend bool operator!= (const Vector<U>& lhs, const Vector<U>& rhs);
+    template <typename U>
+    friend bool operator<= (const Vector<U>& lhs, const Vector<U>& rhs);
+    template <typename U>
+    friend bool operator>= (const Vector<U>& lhs, const Vector<U>& rhs);
+    template <typename U>
+    friend bool operator< (const Vector<U>& lhs, const Vector<U>& rhs);
+    template <typename U>
+    friend bool operator> (const Vector<U>& lhs, const Vector<U>& rhs);
+    template <typename U>
+    friend void swap (Vector<U>& lhs, Vector<U>& rhs) noexcept;
+    template <typename U>
+    friend size_type erase(const Vector<U>& lhs, const_reference) noexcept;
 private:
     pointer data_;
     size_type size_;
     size_type capacity_;
 };
 
-#include "Vector.cpp" 
+#include "../source/Vector.cpp" 
 #endif
