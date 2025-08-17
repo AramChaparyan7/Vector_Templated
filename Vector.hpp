@@ -53,6 +53,14 @@ public:
     void resize(size_type size, const_reference);
     template <typename...Args>
     void emplace_back(Args&&...);
+    friend bool operator== (const Vector<T>& lhs, const Vector<T>& rhs);
+    friend bool operator!= (const Vector<T>& lhs, const Vector<T>& rhs);
+    friend bool operator<= (const Vector<T>& lhs, const Vector<T>& rhs);
+    friend bool operator>= (const Vector<T>& lhs, const Vector<T>& rhs);
+    friend bool operator< (const Vector<T>& lhs, const Vector<T>& rhs);
+    friend bool operator> (const Vector<T>& lhs, const Vector<T>& rhs);
+    friend void swap (const Vector<T>& lhs, const Vector<T>& rhs) noexcept;
+    friend size_type erase(const Vector<T>& lhs, const_reference) noexcept;
 private:
     pointer data_;
     size_type size_;

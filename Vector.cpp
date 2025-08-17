@@ -356,4 +356,64 @@ void Vector<T>::emplace_back(Args&&... args) {
     insert(size_ - 1, value_type(std::forward<Args>(args)...));
 }
 
+template <typename T>
+bool operator== (const Vector<T>& lhs, const Vector<T>& rhs) {
+    if(lhs.size_ != rhs.size_) {
+        return false;
+    }
+    for(int i = 0; i < lhs.size_; ++i) {
+        if(lhs[i] != rhs[i]) {
+            return false;
+        }
+    }
+    return true;
+}
+
+template <typename T>
+bool operator!= (const Vector<T>& lhs, const Vector<T>& rhs) {
+    return !(lhs==rhs);
+}
+
+template <typename T>
+bool operator< (const Vector<T>& lhs, const Vector<T>& rhs){
+    int size = lhs.size_ < rhs.size_ ? lhs.size_ : rhs.size_;
+    for(int i = 0; i < size; ++i) {
+        if(lhs[i] > rhs[i]) {
+            return false;
+        }else if(lhs[i] < rhs[i]) {
+            return true;
+        }
+    }
+    return lhs.size_ < rhs.size_;
+}
+
+template <typename T>
+bool operator> (const Vector<T>& lhs, const Vector<T>& rhs){
+    return !(lhs <= rhs);
+}
+
+template <typename T>
+bool operator<= (const Vector<T>& lhs, const Vector<T>& rhs){
+    return lhs < rhs || lhs == rhs;
+}
+
+template <typename T>
+bool operator>= (const Vector<T>& lhs, const Vector<T>& rhs){
+    return lhs < rhs;
+}
+
+template <typename T>
+void swap (const Vector<T>& lhs, const Vector<T>& rhs) noexcept {
+    lhs.swap(rhs);
+}
+
+template <typename T>
+typename Vector<T>::size_type erase(const Vector<T>& vec, typename Vector<T>::const_reference value) {
+    for(int i = 0; i < vec.size_; ++i) {
+        if(vec[i] == val) {
+            vec.erase(vec[i]);
+        }
+    }
+}
+
 #endif
