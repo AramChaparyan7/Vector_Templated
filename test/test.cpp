@@ -1,5 +1,6 @@
 #include "../includes/Vector.hpp"
 #include <gtest/gtest.h>
+#include <iostream>
 
 TEST(VectorTest, PushBack) {
     Vector<int> vec;
@@ -7,13 +8,15 @@ TEST(VectorTest, PushBack) {
     EXPECT_EQ(vec.size(), 1);
     vec.push_back(20);
     EXPECT_EQ(vec.size(), 2);
+    Vector<char> c;
+    c.push_back('a');
+    EXPECT_EQ(c.size(), 1);
 }
 
 TEST(VectorTest, Indexing) {
     Vector<std::string> vec;
     vec.push_back("hello");
     vec.push_back("world");
-
     EXPECT_EQ(vec[0], "hello");
     EXPECT_EQ(vec[1], "world");
 }

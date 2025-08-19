@@ -3,29 +3,44 @@
 #include "../includes/Vector.hpp" 
 #include <stdexcept>
 #include <utility>
+#include <memory>
 
 template <typename T>
-Vector<T>::Vector() : data_{nullptr}, capacity_{0}, size_{0}{}
+Vector<T>::Vector() noexcept : data_{nullptr}, capacity_{0}, size_{0} {}
 
 template <typename T>
-Vector<T>::Vector(size_type size) : data_{nullptr}, capacity_{size}, size_{size} {
-    data_ = new value_type[capacity_];
-}
-
-template <typename T>
-Vector<T>::Vector(size_t size, const_reference value) : capacity_{size}, size_{size} {
-    data_ = new value_type[capacity_];
-    for(int i = 0; i < size_; ++i) {
-        data_[i] = value;
+Vector<T>::Vector(size_type size, const_reference value) : Vector{} {
+    data_ = static_cast<T*>(operator new(sizeof(T*) * size_));
+    size_type i = 0;
+    try {
+        for(; i < size; ++i) {
+            new (&data_[i]) T(value);
+        }
+        size_ = capacity_ = size;
+    }
+    catch (...) {
+        for(size_type j = 0; j < i; ++j) {
+            data_[j].~T();
+        }
+        operator delete(data_);
+        throw;
     }
 }
 
+
 template <typename T>
-Vector<T>::Vector(const Vector<T>& other) : capacity_{other.capacity_}, size_{other.size_} {
-    data_ = new T[capacity_];
-    for(int i = 0; i < capacity_; ++i) {
-        data_[i] = other.data_[i];
-    } 
+Vector<T>::Vector(const Vector<T>& other) : Vector{} {
+    data_ = static_cast<T*>(operator new(sizeof(T) * other.capacity_));
+    size_type i = 0;
+    try {
+        std::uninitialized_copy_n(other.data_, other.size_, data_);
+        capacity_ = other.capacity_;
+        size_ = other.size_;
+    }
+    catch (...) {
+        operator delete(data_);
+        throw;
+    }
 }
 
 template <typename T>
@@ -36,20 +51,20 @@ Vector<T>::Vector(Vector<T>&& other) noexcept : capacity_{other.capacity_}, size
 
 template <typename T>
 Vector<T>::~Vector() {
-    capacity_ = 0;
-    size_ = 0;
-    delete[] data_;
-    data_ = nullptr;
+    clear();
+    operator delete(data_);
 }
 
 template <typename T>
 Vector<T>::Vector(std::initializer_list<T> init) {
-    capacity_ = init.size();
-    size_ = init.size();
-    data_ = new value_type[capacity_];
-    int i = 0;
-    for(const_reference it : init) {
-        data_[i++] = it;
+    data_ = static_cast<T*>(operator new(sizeof(T) * init.size()));
+    try {
+        std::uninitialized_copy(init.begin(), init.end(), data_);
+        capacity_ = size_ = init.size();
+    }
+    catch (...) {
+        operator delete(data_);
+        throw;
     }
 }
 
@@ -58,24 +73,15 @@ Vector<T>& Vector<T>::operator= (Vector&& other) noexcept {
     if(this == &other) {
         return *this;
     }
-    capacity_ = other.capacity_;
-    size_ = other.size_;
-    delete[] data_;
-    data_ = other.data_;
-    other.data_ = nullptr;
+    Vector<T> tmp(std::move(other));
+    swap(tmp);
     return *this;
 }
 
 template <typename T> 
-Vector<T>& Vector<T>::operator= (std::initializer_list<T> init) {
-    capacity_ = init.size();
-    size_ = init.size();
-    delete[] data_;
-    data_ = new value_type[capacity_];
-    int i = 0;
-    for(const_reference it : init) {
-        data_[i++] = it;
-    }
+Vector<T>& Vector<T>::operator= (std::initializer_list<T>& init) {
+    Vector<T> tmp(init);
+    swap(tmp);
     return *this;
 }
 
@@ -84,13 +90,8 @@ Vector<T>& Vector<T>::operator= (const Vector& other) {
     if(this == &other) {
         return *this;
     }
-    capacity_ = other.capacity_;
-    size_ = other.size_;
-    delete[] data_;
-    data_ = new value_type[capacity_];
-    for(int i = 0; i < size_; ++i) {
-        data_[i] = other.data_[i];
-    }
+    Vector<T> tmp(other);
+    swap(tmp);
     return *this;
 }
 
@@ -156,17 +157,17 @@ typename Vector<T>::pointer Vector<T>::data() {
 }
 
 template <typename T> 
-const typename Vector<T>::pointer Vector<T>::data() const {
+typename Vector<T>::const_pointer Vector<T>::data() const {
     return data_;
 }
 
 template <typename T>
-bool Vector<T>::empty() const {
+bool Vector<T>::empty() const noexcept {
     return  size_ == 0;
 }
 
 template <typename T>
-typename Vector<T>::size_type Vector<T>::size() const {
+typename Vector<T>::size_type Vector<T>::size() const noexcept {
     return size_;
 }
 
@@ -175,16 +176,30 @@ void Vector<T>::reserve(size_type cap) {
     if(cap <= capacity_) {
         return;
     }
-    Vector<T> tmp(cap);
-    for(int i = 0; i < size_; ++i) {
-        tmp.data_[i] = data_[i];
+    T *new_data = static_cast<T*>(operator new(sizeof(T) * cap));
+    size_type i = 0;
+    try {
+        for(; i < size_; ++i) {
+            new (&new_data[i]) T(data_[i]);
+        }
     }
-    tmp.size_ = size_;
-    this->swap(tmp);
+    catch (...) {
+        for(size_type j = 0; j < i; ++j) {
+            new_data[j].~T();
+        }
+        operator delete(new_data);
+        throw;
+    }
+    size_type tmp = size_;
+    clear();
+    operator delete(data_);
+    data_ = new_data;
+    capacity_ = cap;
+    size_ = tmp;
 }
 
 template <typename T>
-typename Vector<T>::size_type Vector<T>::capacity() const {
+typename Vector<T>::size_type Vector<T>::capacity() const noexcept {
     return capacity_;
 }
 
@@ -203,79 +218,64 @@ void Vector<T>::shrink_to_fit() {
 
 template <typename T>
 void Vector<T>::swap(Vector<T>& other) noexcept {
-    size_type tmp = capacity_;
-    capacity_ = other.capacity_;
-    other.capacity_ = tmp;
-    tmp = size_;
-    size_ = other.size_;
-    other.size_ = tmp;
-    Vector<T>::pointer t = data_;
-    data_ = other.data_;
-    other.data_ = t;
-    t = nullptr;
+    std::swap(capacity_, other.capacity_);
+    std::swap(size_, other.size_);
+    std::swap(data_, other.data_);
 }
 
 template <typename T>
 void Vector<T>::clear() {
+    for(int i = 0; i < size_; ++i) {
+        data_[i].~T();
+    }
     size_ = 0;
 }
 
 template <typename T>
 void Vector<T>::insert(size_type pos, const_reference val) {
-    if(pos > size_) {
-        throw std::out_of_range("Wrong argument");
-    }
-    if(capacity_ == 0) {
-        *this = Vector<T>(1, val);
+    if(pos == size_) {
+        push_back(val);
         return;
     }
     if(capacity_ == size_) { 
         reserve(capacity_ * 2); 
     } 
-    for(int i = size_; i > pos; --i) {
-        data_[i] = data_[i - 1]; 
+    size_type i = size_;
+    for(; i > pos; --i) {
+        new (&data_[i]) T(std::move(data_[i - 1])); 
     } 
+    new (&data_[pos]) T(val);
     ++size_;
-    data_[pos] = val;
 }
 
 template <typename T>
-void Vector<T>::insert(size_type pos, reference& val) {
-    if(pos > size_) {
-        throw std::out_of_range("Wrong argument");
-    }
-    if(capacity_ == 0) {
-        *this = Vector<T>(1, val);
+void Vector<T>::insert(size_type pos, T&& val) {
+    if(pos == size_) {
+        push_back(val);
         return;
     }
     if(capacity_ == size_) { 
         reserve(capacity_ * 2); 
     } 
-    for(int i = size_; i > pos; --i) {
-        data_[i] = data_[i - 1]; 
+    size_type i = size_;
+    for(; i > pos; --i) {
+        new (&data_[i]) T(std::move(data_[i - 1])); 
     } 
+    new (&data_[pos]) T(std::move(val));
     ++size_;
-    data_[pos] = std::move(val);
 }
 
 template <typename T>
 void Vector<T>::insert(size_type pos, size_type count, const_reference val) {
-    if(pos > size_) {
-        throw std::out_of_range("Wrong argument");
-    }
-    if(capacity_ == 0) {
-        *this = Vector<T>(count, val);
-        return;
-    }
-    if(capacity_ <= size_ + count) { 
-        reserve(capacity_ * 2 + count); 
+    if(capacity_ < size_ + count) { 
+        reserve(2 * (count + size_)); 
     } 
-    for(int i = size_ + count - 1; i > pos; --i) {
-        data_[i] = data_[i - 1]; 
+    for(size_type i = size_ + count; i >= pos + count; --i) {
+        new (&data_[i]) T(std::move(data_[i - count]));
     } 
-    size_ += count;
-    for(int i = pos; i < pos + count; ++i) {
-        data_[i] = val; 
+    size_type tmp = pos;
+    while(count--) {
+        new (&data_[pos++]) T(val);
     }
 }
 
@@ -287,33 +287,40 @@ void Vector<T>::emplace(size_type pos, Args&&... args) {
 
 template <typename T>
 void Vector<T>::erase(size_type pos) {
-    if(pos >= size_) {
-        throw std::out_of_range("Wrong argument");
-    }
+    data_[pos].~T();
     for(int i = pos; i < size_ - 1; ++i) {
-        data_[i] = data_[i + 1];
+        data_[i] = std::move(data_[i + 1]);
     }
-    size_--;
+    --size_;
 }
 
 template <typename T>
 void Vector<T>::erase(size_type pos1, size_type pos2) {
-    for(int i = pos1; i < size_; ++i) {
-        erase(i);
+    for(size_type i = pos1; i < pos2; ++i) {
+        data_[i].~T();
     }
+    for(size_type i = pos1; i < size_ - pos2 + pos1; ++i) {
+        new (&data_[i]) T(std::move(data[i + pos1 - pos2]));
+    }
+    size_ -= pos2 - pos1;
 }
 
 template <typename T>
 void Vector<T>::push_back(const_reference val) {
-    if(capacity_ == 0) {
-        *this = Vector<int>(1, val);
-        return;
-    }
     if(capacity_ == size_) { 
-        reserve(capacity_ * 2); 
+        reserve(capacity_ == 0 ? 1 : capacity_ * 2); 
     } 
     ++size_;
     data_[size_ - 1] = val;
+}
+
+template <typename T>
+void Vector<T>::push_back(T&& val) {
+    if(capacity_ == size_) { 
+        reserve(capacity_ == 0 ? 1 : capacity_ * 2); 
+    } 
+    ++size_;
+    data_[size_ - 1] = std::move(val);
 }
 
 template <typename T>
@@ -321,49 +328,42 @@ void Vector<T>::pop_back(const_reference val) {
     erase(size_ - 1);
 }
 
-template <typename T>
-void Vector<T>::resize(size_type size) {
-    if(size == size_) {
-        return;
-    }
-    else if(size < size_) {
-        erase(size, size_);
-    }
-    else {
-        reserve(size);
-        size_ = capacity_;
-    }
-}
 
 template <typename T>
 void Vector<T>::resize(size_type size, const_reference val) {
     if(size == size_) {
         return;
     }
-    else if(size < size_) {
-        erase(size, size_);
-    }
-    else {
-        reserve(size);
-        size_ = capacity_;
-        for(int i = 0; i < size_; ++i) {
-            data_[i] = val;
+    if(size < size_) {
+        for(size_type i = size; i < size_; ++i) {
+            data_[i].~T();
         }
     }
+    else {
+        if(size > capacity_) {
+            reserve(capacity_ * 2);
+        }
+        std::uninitialized_fill_n(data_ + size_, size - size_, val);
+    }
+    size_ = size;
 }
 
 template <typename T>
 template <typename...Args>
 void Vector<T>::emplace_back(Args&&... args) {
-    insert(size_ - 1, value_type(std::forward<Args>(args)...));
+    if(capacity_ == size_) { 
+        reserve(capacity_ * 2); 
+    } 
+    ++size_;
+    new (&data_[size_]) T(std::forward<Args>(args)...);
 }
 
 template <typename T>
 bool operator== (const Vector<T>& lhs, const Vector<T>& rhs) {
-    if(lhs.size_ != rhs.size_) {
+    if(lhs.size() != rhs.size()) {
         return false;
     }
-    for(int i = 0; i < lhs.size_; ++i) {
+    for(int i = 0; i < lhs.size(); ++i) {
         if(lhs[i] != rhs[i]) {
             return false;
         }
@@ -378,7 +378,7 @@ bool operator!= (const Vector<T>& lhs, const Vector<T>& rhs) {
 
 template <typename T>
 bool operator< (const Vector<T>& lhs, const Vector<T>& rhs){
-    int size = lhs.size_ < rhs.size_ ? lhs.size_ : rhs.size_;
+    int size = lhs.size() < rhs.size() ? lhs.size() : rhs.size();
     for(int i = 0; i < size; ++i) {
         if(lhs[i] > rhs[i]) {
             return false;
@@ -386,7 +386,7 @@ bool operator< (const Vector<T>& lhs, const Vector<T>& rhs){
             return true;
         }
     }
-    return lhs.size_ < rhs.size_;
+    return lhs.size() < rhs.size();
 }
 
 template <typename T>
@@ -411,7 +411,7 @@ void swap (Vector<T>& lhs, Vector<T>& rhs) noexcept {
 
 template <typename T>
 typename Vector<T>::size_type erase(const Vector<T>& vec, typename Vector<T>::const_reference value) {
-    for(int i = 0; i < vec.size_; ++i) {
+    for(int i = 0; i < vec.size(); ++i) {
         if(vec[i] == value) {
             vec.erase(vec[i]);
         }
