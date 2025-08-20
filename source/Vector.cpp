@@ -10,7 +10,7 @@ Vector<T>::Vector() noexcept : data_{nullptr}, capacity_{0}, size_{0} {}
 
 template <typename T>
 Vector<T>::Vector(size_type size, const_reference value) : Vector{} {
-    data_ = static_cast<T*>(operator new(sizeof(T*) * size_));
+    data_ = static_cast<T*>(operator new(sizeof(T) * size_));
     size_type i = 0;
     try {
         for(; i < size; ++i) {
@@ -300,7 +300,7 @@ void Vector<T>::erase(size_type pos1, size_type pos2) {
         data_[i].~T();
     }
     for(size_type i = pos1; i < size_ - pos2 + pos1; ++i) {
-        new (&data_[i]) T(std::move(data[i + pos1 - pos2]));
+        new (&data_[i]) T(std::move(data_[i + pos1 - pos2]));
     }
     size_ -= pos2 - pos1;
 }

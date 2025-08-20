@@ -41,6 +41,10 @@ TEST(VectorTest, Size_Capacity) {
     vec.clear();
     EXPECT_EQ(vec.size(), 0);
     EXPECT_EQ(vec.empty(), true);
+    Vector<int> vec1 = {1, 2, 3, 4};
+    vec1.reserve(50);
+    EXPECT_EQ(vec1.capacity(), 50);
+    
 }
 
 TEST(VectorTest, Insert_Erase) {
